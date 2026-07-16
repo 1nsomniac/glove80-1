@@ -12,12 +12,41 @@
 
 #define HYPER LC(LS(LG(LALT)))
 
-// layers
+// ---------------------------------------------------------------------------
+// LAYERS
+//   0 DEFAULT       base + home row mods (Cmd/Alt/Ctrl/Shift on ASDF & JKL;)
+//   1 BASE_PLAIN    same base, home row mods DISABLED (plain letters)
+//   2 LOWER         numbers / media / nav  (+ Enter, Backspace, F1-F4)
+//   3 SHORTCUT      left-hand shortcut cluster (Mac)   -- HOLD left thumb
+//   4 SHORTCUT_PC   left-hand shortcut cluster (PC)    -- auto when PC mode on
+//   5 MAGIC         BT / RGB / reset + OS & HRM toggles
+//   6 FACTORY_TEST  factory test
+//   7 PC            OS flag: while ON, base copy/paste emit Ctrl (PC)
+//
+// TOGGLES (all live on the MAGIC layer, right home row):
+//   J = &to 0   -> home row mods ON  (Mac-style Cmd on home row)
+//   K = &to 1   -> home row mods OFF (plain letters)
+//   L = &tog 7  -> flip Mac <-> PC   (changes copy/paste + shortcut layer)
+// ---------------------------------------------------------------------------
 
-#define DEFAULT 0
-#define LOWER 1
-#define MAGIC 2
-#define FACTORY_TEST 3
+#define DEFAULT      0
+#define BASE_PLAIN   1
+#define LOWER        2
+#define SHORTCUT     3
+#define SHORTCUT_PC  4
+#define MAGIC        5
+#define FACTORY_TEST 6
+#define PC           7
+
+// Positions of one hand + both thumb clusters, used to make the home row mods
+// "positional" (a mod only triggers when combined with a key on the OTHER
+// side of the board, so fast same-hand rolls never accidentally hold a mod).
+
+// Right-hand keys + all thumbs  -> allowed triggers for LEFT home row mods
+#define RIGHT_AND_THUMBS  5 6 7 8 9 16 17 18 19 20 21 28 29 30 31 32 33 40 41 42 43 44 45 58 59 60 61 62 63 75 76 77 78 79 52 53 54 55 56 57 69 70 71 72 73 74
+
+// Left-hand keys + all thumbs   -> allowed triggers for RIGHT home row mods
+#define LEFT_AND_THUMBS   0 1 2 3 4 10 11 12 13 14 15 22 23 24 25 26 27 34 35 36 37 38 39 46 47 48 49 50 51 64 65 66 67 68 52 53 54 55 56 57 69 70 71 72 73 74
 
 / {
     behaviors {
@@ -39,6 +68,47 @@
             flavor = "tap-preferred";
             tapping-term-ms = <200>;
             bindings = <&mo>, <&rgb_ug_status_macro>;
+        };
+
+        // Left thumb: tap = Delete, hold = SHORTCUT layer (left-hand shortcuts).
+        ls: layer_shortcut {
+            compatible = "zmk,behavior-hold-tap";
+            label = "LAYER_SHORTCUT";
+            #binding-cells = <2>;
+            flavor = "hold-preferred";
+            tapping-term-ms = <200>;
+            quick-tap-ms = <150>;
+            bindings = <&mo>, <&kp>;
+        };
+
+        // Home row mods, left hand. "balanced" flavor + positional trigger +
+        // require-prior-idle gives the "glorious/timeless" feel: taps stay taps
+        // while typing, holds only engage when paired with the other hand.
+        hml: home_row_mod_left {
+            compatible = "zmk,behavior-hold-tap";
+            label = "HOME_ROW_MOD_LEFT";
+            #binding-cells = <2>;
+            flavor = "balanced";
+            tapping-term-ms = <280>;
+            quick-tap-ms = <175>;
+            require-prior-idle-ms = <150>;
+            hold-trigger-key-positions = <RIGHT_AND_THUMBS>;
+            hold-trigger-on-release;
+            bindings = <&kp>, <&kp>;
+        };
+
+        // Home row mods, right hand.
+        hmr: home_row_mod_right {
+            compatible = "zmk,behavior-hold-tap";
+            label = "HOME_ROW_MOD_RIGHT";
+            #binding-cells = <2>;
+            flavor = "balanced";
+            tapping-term-ms = <280>;
+            quick-tap-ms = <175>;
+            require-prior-idle-ms = <150>;
+            hold-trigger-key-positions = <LEFT_AND_THUMBS>;
+            hold-trigger-on-release;
+            bindings = <&kp>, <&kp>;
         };
     };
 
@@ -79,19 +149,24 @@
         };
     };
 
+    // While PC mode (layer 7) AND the SHORTCUT layer (3) are both active, jump
+    // to SHORTCUT_PC (4) so the shortcut cluster emits Windows variants.
+    conditional_layers {
+        compatible = "zmk,conditional-layers";
+        shortcut_pc {
+            if-layers = <PC SHORTCUT>;
+            then-layer = <SHORTCUT_PC>;
+        };
+    };
+
     combos {
         compatible = "zmk,combos";
 
-        clipboard-history {
-            bindings = <&kp LG(V)>;
-            key-positions = <52 3>;
-            layers = <0>;
-        };
-
-        control-backspace {
-            bindings = <&kp RC(BACKSPACE)>;
+        // Delete previous word. Mac uses Option+Backspace (not Ctrl+Backspace).
+        word-delete {
+            bindings = <&kp LA(BACKSPACE)>;
             key-positions = <57 69>;
-            layers = <0>;
+            layers = <0 1>;
         };
     };
 
@@ -100,42 +175,91 @@
 
         default_layer {
             // ---------------------------------------------------------------------------------------------------------------------------------
-            // |  F1   |  F2 |  F3 |  F4  |  F5  |                                                               |  F6   |  F7   |  F8  |   F9  |  F10 |
+            // |  F1   |  F2 | COPY | PASTE|  F5  |                                                               |  F12  |  F7   |  F8  |   F9  |  F10 |
             // |  =    |  1  |  2  |  3   |  4   |  5   |                                                 |  6   |   7   |   8   |  9   |   0   |   -  |
             // |  TAB  |  Q  |  W  |  E   |  R   |  T   |                                                 |  Y   |   U   |   I   |  O   |   P   |   \  |
-            // |  ESC  |  A  |  S  |  D   |  F   |  G   |                                                 |  H   |   J   |   K   |  L   |   ;   |   '  |
-            // |   `   |  Z  |  X  |  C   |  V   |  B   | LSHFT | LCTRL | LOWER | | LGUI  | RCTRL | RSHFT |  N   |   M   |   ,   |  .   |   /   | PGUP |
-            // | MAGIC | HOME| END | LEFT | RIGHT|      | BSPC  | DEL   | LALT  | | RALT  | RET   | SPACE |      |  UP   | DOWN  |  [   |   ]   | PGDN |
+            // |  ESC  | A/G | S/A | D/C  | F/S  |  G   |                                                 |  H   |  J/S  |  K/C  | L/A  |  ;/G  |   '  |
+            // |   `   |  Z  |  X  |  C   |  V   |  B   | LCTRL | DEL/SC| LOWER | | LGUI  | RET   | LCTRL |  N   |   M   |   ,   |  .   |   /   | PGUP |
+            // | MAGIC | HOME| END | LEFT | RIGHT|      | LSHFT | BSPC  | LALT  | | RALT  | SPACE | RSHFT |      |  UP   | DOWN  |  [   |   ]   | PGDN |
+            //  ( home row mods: A=Cmd S=Alt D=Ctrl F=Shift  /  J=Shift K=Ctrl L=Alt ;=Cmd )
+            //  ( COPY=Cmd+C  PASTE=Cmd+V  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
 
             bindings = <
-&kp F1          &kp F2    &kp RC(C)  &kp RC(V)  &kp F5                                                                                                        &kp F12  &kp F7     &kp F8    &kp F9    &kp F10
+&kp F1          &kp F2    &kp LG(C)  &kp LG(V)     &kp F5                                                                                                                &kp F12  &kp F7        &kp F8         &kp F9    &kp F10
+&kp EQUAL       &kp N1    &kp N2     &kp N3        &kp N4        &kp N5                                                                                          &kp N6  &kp N7   &kp N8        &kp N9         &kp N0    &kp MINUS
+&kp TAB         &kp Q     &kp W      &kp E         &kp R         &kp T                                                                                           &kp Y   &kp U    &kp I         &kp O          &kp P     &kp BSLH
+&kp ESC         &hml LGUI A  &hml LALT S  &hml LCTRL D  &hml LSHFT F  &kp G                                                                                      &kp H   &hmr RSHFT J  &hmr RCTRL K  &hmr RALT L  &hmr RGUI SEMI  &kp SQT
+&kp GRAVE       &kp Z     &kp X      &kp C         &kp V         &kp B   &kp LEFT_CONTROL  &ls SHORTCUT DEL  &layer_td  &kp LGUI  &kp ENTER  &kp LEFT_CONTROL  &kp N   &kp M    &kp COMMA     &kp DOT        &kp FSLH  &kp PG_UP
+&magic MAGIC 0  &kp HOME  &kp END    &kp LEFT      &kp RIGHT             &kp LEFT_SHIFT    &kp BACKSPACE     &kp LALT   &kp RALT  &kp SPACE  &kp RIGHT_SHIFT           &kp UP   &kp DOWN      &kp LBKT       &kp RBKT  &kp PG_DN
+            >;
+        };
+
+        base_plain_layer {
+            // Identical to DEFAULT but with home row mods disabled (plain A S D F / J K L ;).
+            // Reach via MAGIC layer: &to 1 turns HRM off, &to 0 turns it back on.
+            bindings = <
+&kp F1          &kp F2    &kp LG(C)  &kp LG(V)  &kp F5                                                                                                        &kp F12  &kp F7     &kp F8    &kp F9    &kp F10
 &kp EQUAL       &kp N1    &kp N2     &kp N3     &kp N4     &kp N5                                                                                     &kp N6  &kp N7   &kp N8     &kp N9    &kp N0    &kp MINUS
 &kp TAB         &kp Q     &kp W      &kp E      &kp R      &kp T                                                                                      &kp Y   &kp U    &kp I      &kp O     &kp P     &kp BSLH
 &kp ESC         &kp A     &kp S      &kp D      &kp F      &kp G                                                                                      &kp H   &kp J    &kp K      &kp L     &kp SEMI  &kp SQT
-&kp GRAVE       &kp Z     &kp X      &kp C      &kp V      &kp B   &kp LEFT_CONTROL  &kp DELETE     &layer_td  &kp LGUI  &kp ENTER  &kp LEFT_CONTROL  &kp N   &kp M    &kp COMMA  &kp DOT   &kp FSLH  &kp PG_UP
-&magic MAGIC 0  &kp HOME  &kp END    &kp LEFT   &kp RIGHT          &kp LEFT_SHIFT    &kp BACKSPACE  &kp LALT   &kp RALT  &kp SPACE  &kp RIGHT_SHIFT           &kp UP   &kp DOWN   &kp LBKT  &kp RBKT  &kp PG_DN
+&kp GRAVE       &kp Z     &kp X      &kp C      &kp V      &kp B   &kp LEFT_CONTROL  &ls SHORTCUT DEL  &layer_td  &kp LGUI  &kp ENTER  &kp LEFT_CONTROL  &kp N   &kp M    &kp COMMA  &kp DOT   &kp FSLH  &kp PG_UP
+&magic MAGIC 0  &kp HOME  &kp END    &kp LEFT   &kp RIGHT          &kp LEFT_SHIFT    &kp BACKSPACE     &kp LALT   &kp RALT  &kp SPACE  &kp RIGHT_SHIFT           &kp UP   &kp DOWN   &kp LBKT  &kp RBKT  &kp PG_DN
             >;
         };
 
         lower_layer {
+            // Media on top row (left+right). Numpad on right hand. Nav on left.
+            // Added: F1-F4 (left number row), Backspace + Enter on the right thumb.
             bindings = <
 &kp C_BRI_DN  &kp C_BRI_UP  &kp C_PREV  &kp C_NEXT  &kp C_PP                                                                              &kp C_MUTE  &kp C_VOL_DN  &kp C_VOL_UP   &none            &kp PAUSE_BREAK
-&trans        &none         &none       &none       &none      &kp HOME                                                        &kp LPAR   &kp KP_NUM  &kp KP_EQUAL  &kp KP_DIVIDE  &kp KP_MULTIPLY  &kp PSCRN
+&trans        &kp F1        &kp F2      &kp F3      &kp F4     &kp HOME                                                        &kp LPAR   &kp KP_NUM  &kp KP_EQUAL  &kp KP_DIVIDE  &kp KP_MULTIPLY  &kp PSCRN
 &trans        &none         &none       &kp UP      &none      &kp END                                                         &kp RPAR   &kp KP_N7   &kp KP_N8     &kp KP_N9      &kp KP_MINUS     &kp SLCK
 &trans        &none         &kp LEFT    &kp DOWN    &kp RIGHT  &kp PG_UP                                                       &kp PRCNT  &kp KP_N4   &kp KP_N5     &kp KP_N6      &kp KP_PLUS      &none
-&trans        &kp K_CMENU   &none       &kp F11     &kp F12    &kp PG_DN  &trans  &trans  &to DEFAULT  &trans  &trans  &trans  &kp COMMA  &kp KP_N1   &kp KP_N2     &kp KP_N3      &kp KP_ENTER     &trans
-&trans        &kp CAPS      &kp INS     &kp F11     &kp F12               &trans  &trans  &trans       &trans  &trans  &trans             &kp KP_N0   &kp KP_N0     &kp KP_DOT     &kp KP_ENTER     &trans
+&trans        &kp K_CMENU   &none       &kp F11     &kp F12    &kp PG_DN  &trans  &trans  &to DEFAULT  &kp BSPC  &kp RET  &trans  &kp COMMA  &kp KP_N1   &kp KP_N2     &kp KP_N3      &kp KP_ENTER     &trans
+&trans        &kp CAPS      &kp INS     &kp F11     &kp F12               &trans  &trans  &trans       &trans    &trans   &trans             &kp KP_N0   &kp KP_N0     &kp KP_DOT     &kp KP_ENTER     &trans
+            >;
+        };
+
+        shortcut_layer {
+            // Held with the left thumb (Delete key). All actions reachable by the LEFT hand.
+            // MAC variants:
+            //   A = autofill (Ctrl+Shift+L)   S = screenshot (Cmd+Shift+S, bind Snagit here)
+            //   D = duplicate tab (Alt+S)     F = Spotlight (Cmd+Space)   G = Claude (Alt+Space)
+            //   Z = lock (Ctrl+Cmd+Q)  X = clipboard history (Cmd+Shift+V)  C = copy  V = paste
+            bindings = <
+&trans  &trans        &trans        &trans        &trans                                                                       &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans        &trans                                                 &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans        &trans                                                 &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LC(LS(L)) &kp LG(LS(S)) &kp LA(S)     &kp LG(SPACE) &kp LA(SPACE)                                          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LC(LG(Q)) &kp LG(LS(V)) &kp LG(C)     &kp LG(V)     &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans                &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
+            >;
+        };
+
+        shortcut_pc_layer {
+            // PC variants (auto-selected when PC mode is on). Keys that are identical
+            // to Mac (autofill, duplicate tab, Claude) stay transparent -> fall to SHORTCUT.
+            //   S = screenshot (Win+Shift+S)  F = Windows search (Win+S)
+            //   Z = lock (Win+L)  X = clipboard history (Win+V)  C = copy (Ctrl+C)  V = paste (Ctrl+V)
+            bindings = <
+&trans  &trans        &trans        &trans        &trans                                                                       &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans        &trans                                                 &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans        &trans                                                 &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &kp LG(LS(S)) &trans        &kp LG(S)     &trans                                                 &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LG(L)     &kp LG(V)     &kp LC(C)     &kp LC(V)     &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans        &trans        &trans        &trans                &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
             >;
         };
 
         magic_layer {
+            // Right home row toggles: J=&to 0 (HRM on)  K=&to 1 (HRM off)  L=&tog 7 (Mac<->PC)
             bindings = <
-&bt BT_CLR   &none            &none            &none            &none                                                                                     &none  &none  &none  &none  &bt BT_CLR_ALL
-&none        &none            &none            &none            &none            &none                                                             &none  &none  &none  &none  &none  &none
-&none        &rgb_ug RGB_SPI  &rgb_ug RGB_SAI  &rgb_ug RGB_HUI  &rgb_ug RGB_BRI  &rgb_ug RGB_TOG                                                   &none  &none  &none  &none  &none  &none
-&bootloader  &rgb_ug RGB_SPD  &rgb_ug RGB_SAD  &rgb_ug RGB_HUD  &rgb_ug RGB_BRD  &rgb_ug RGB_EFF                                                   &none  &none  &none  &none  &none  &bootloader
-&sys_reset   &none            &none            &none            &none            &none            &bt_2  &bt_3  &none         &none  &none  &none  &none  &none  &none  &none  &none  &sys_reset
-&none        &none            &none            &none            &none                             &bt_0  &bt_1  &out OUT_USB  &none  &none  &none         &none  &none  &none  &none  &to FACTORY_TEST
+&bt BT_CLR   &none            &none            &none            &none                                                                                     &none    &none     &none     &none  &bt BT_CLR_ALL
+&none        &none            &none            &none            &none            &none                                                             &none    &none     &none     &none  &none  &none
+&none        &rgb_ug RGB_SPI  &rgb_ug RGB_SAI  &rgb_ug RGB_HUI  &rgb_ug RGB_BRI  &rgb_ug RGB_TOG                                                   &none    &none     &none     &none  &none  &none
+&bootloader  &rgb_ug RGB_SPD  &rgb_ug RGB_SAD  &rgb_ug RGB_HUD  &rgb_ug RGB_BRD  &rgb_ug RGB_EFF                                                   &none    &to 0     &to 1     &tog 7 &none  &bootloader
+&sys_reset   &none            &none            &none            &none            &none            &bt_2  &bt_3  &none         &none  &none  &none  &none    &none     &none     &none  &none  &sys_reset
+&none        &none            &none            &none            &none                             &bt_0  &bt_1  &out OUT_USB  &none  &none  &none           &none     &none     &none  &none  &to FACTORY_TEST
             >;
         };
 
@@ -147,6 +271,20 @@
 &kp N3  &kp N9  &kp N5  &kp N1  &kp N7  &kp N2                                                  &kp N2  &kp N7  &kp N1  &kp N5  &kp N9  &kp N3
 &kp N4  &kp N0  &kp N6  &kp N2  &kp N8  &kp N3  &kp N4  &kp N5  &kp N6  &kp N6  &kp N5  &kp N4  &kp N3  &kp N8  &kp N2  &kp N6  &kp N0  &kp N4
 &kp N5  &kp N1  &kp N7  &kp N3  &kp N9          &kp N7  &kp N8  &kp N9  &kp N9  &kp N8  &kp N7          &kp N9  &kp N3  &kp N7  &kp N1  &kp N5
+            >;
+        };
+
+        pc_layer {
+            // OS flag layer. Toggled on/off with &tog 7 (on MAGIC). While ON, the base
+            // copy/paste keys emit Ctrl (Windows) instead of Cmd. Everything else is
+            // transparent. Combined with the SHORTCUT layer it activates SHORTCUT_PC.
+            bindings = <
+&trans  &trans  &kp LC(C)  &kp LC(V)  &trans                                                                     &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans  &trans                                                     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans  &trans                                                     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans  &trans                                                     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans          &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
             >;
         };
     };
