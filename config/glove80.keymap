@@ -240,7 +240,7 @@
 &trans  &trans         &trans         &trans     &trans                                                                                &trans  &trans  &trans  &trans  &trans
 &trans  &trans         &trans         &trans     &trans         &trans                                                         &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans         &trans         &trans     &trans         &trans                                                         &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &kp LC(LS(L))  &kp LG(LS(S))  &kp LA(S)  &kp LG(SPACE)  &kp LA(SPACE)                                                  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LG(LS(L))  &kp LG(LS(S))  &kp LA(S)  &kp LG(SPACE)  &kp LA(SPACE)                                                  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &kp LC(LG(Q))  &kp LG(LS(V))  &kp LG(C)  &kp LG(V)      &trans         &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans         &trans         &trans     &trans                        &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
             >;
