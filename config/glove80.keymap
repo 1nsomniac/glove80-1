@@ -22,6 +22,7 @@
 //   5 MAGIC         BT / RGB / reset + OS & HRM toggles
 //   6 FACTORY_TEST  factory test
 //   7 PC            OS flag: while ON, base copy/paste emit Ctrl (PC)
+//   8 LOWER_PC      PC variants of the LOWER layer (auto when PC + LOWER)
 //
 // TOGGLES (all live on the MAGIC layer, right home row):
 //   J = &to 0   -> home row mods ON  (Mac-style Cmd on home row)
@@ -37,6 +38,7 @@
 #define MAGIC        5
 #define FACTORY_TEST 6
 #define PC           7
+#define LOWER_PC     8
 
 // Positions of one hand + both thumb clusters, used to make the home row mods
 // "positional" (a mod only triggers when combined with a key on the OTHER
@@ -83,6 +85,20 @@
             bindings = <&mo>, <&kp>;
         };
 
+        // Right thumb: tap = Right Alt, hold = LOWER (number/nav) layer. Lets the
+        // whole number layer be reached with the right hand alone. Hold-preferred
+        // so numbers register immediately while the thumb is held.
+
+        num: layer_number {
+            compatible = "zmk,behavior-hold-tap";
+            label = "LAYER_NUMBER";
+            #binding-cells = <2>;
+            flavor = "hold-preferred";
+            tapping-term-ms = <200>;
+            quick-tap-ms = <150>;
+            bindings = <&mo>, <&kp>;
+        };
+
         // Home row mods, left hand. "balanced" flavor + positional trigger +
         // require-prior-idle gives the "glorious/timeless" feel: taps stay taps
         // while typing, holds only engage when paired with the other hand.
@@ -113,6 +129,43 @@
             hold-trigger-key-positions = <LEFT_AND_THUMBS>;
             hold-trigger-on-release;
             bindings = <&kp>, <&kp>;
+        };
+
+        // Copy / paste with Shift masked. Tap = copy / paste. Holding Shift on
+        // the paste key gives a plain-text ("paste and match style") paste;
+        // holding Shift on the copy key stays a plain copy (Shift is discarded
+        // by mod-morph so it never leaks into Cmd/Ctrl+Shift+C).
+
+        copy_mac: copy_mac_morph {
+            compatible = "zmk,behavior-mod-morph";
+            label = "COPY_MAC";
+            #binding-cells = <0>;
+            bindings = <&kp LG(C)>, <&kp LG(C)>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        paste_mac: paste_mac_morph {
+            compatible = "zmk,behavior-mod-morph";
+            label = "PASTE_MAC";
+            #binding-cells = <0>;
+            bindings = <&kp LG(V)>, <&kp LG(LS(V))>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        copy_pc: copy_pc_morph {
+            compatible = "zmk,behavior-mod-morph";
+            label = "COPY_PC";
+            #binding-cells = <0>;
+            bindings = <&kp LC(C)>, <&kp LC(C)>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+
+        paste_pc: paste_pc_morph {
+            compatible = "zmk,behavior-mod-morph";
+            label = "PASTE_PC";
+            #binding-cells = <0>;
+            bindings = <&kp LC(V)>, <&kp LC(LS(V))>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
         };
     };
 
@@ -163,6 +216,16 @@
             if-layers = <PC SHORTCUT>;
             then-layer = <SHORTCUT_PC>;
         };
+
+        // While PC mode (7) AND the LOWER layer (2) are both active, jump to
+        // LOWER_PC (8) so the number layer emits Windows variants (track-skip
+        // keys that the PC copy/paste overlay would otherwise shadow, plus
+        // Ctrl+Win desktop switching on the arrows).
+
+        lower_pc {
+            if-layers = <PC LOWER>;
+            then-layer = <LOWER_PC>;
+        };
     };
 
     combos {
@@ -192,12 +255,12 @@
             //  ( COPY=Cmd+C  PASTE=Cmd+V  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
 
             bindings = <
-&kp F1          &kp F2       &kp LG(C)    &kp LG(V)     &kp F5                                                                                                                   &kp F12       &kp F7        &kp F8       &kp F9          &kp F10
+&kp LG(LS(S))   &kp F2       &copy_mac    &paste_mac    &kp LG(R)                                                                                                                &kp F12       &kp F7        &kp F8       &kp F9          &kp F10
 &kp EQUAL       &kp N1       &kp N2       &kp N3        &kp N4        &kp N5                                                                                             &kp N6  &kp N7        &kp N8        &kp N9       &kp N0          &kp MINUS
 &kp TAB         &kp Q        &kp W        &kp E         &kp R         &kp T                                                                                              &kp Y   &kp U         &kp I         &kp O        &kp P           &kp BSLH
 &kp ESC         &hml LGUI A  &hml LALT S  &hml LCTRL D  &hml LSHFT F  &kp G                                                                                              &kp H   &hmr RSHFT J  &hmr RCTRL K  &hmr RALT L  &hmr RGUI SEMI  &kp SQT
 &kp GRAVE       &kp Z        &kp X        &kp C         &kp V         &kp B   &kp LEFT_GUI    &ls SHORTCUT DEL  &layer_td  &kp LEFT_CONTROL  &kp ENTER  &kp RIGHT_GUI    &kp N   &kp M         &kp COMMA     &kp DOT      &kp FSLH        &kp PG_UP
-&magic MAGIC 0  &kp HOME     &kp END      &kp LEFT      &kp RIGHT             &kp LEFT_SHIFT  &kp BACKSPACE     &kp LALT   &kp RALT          &kp SPACE  &kp RIGHT_SHIFT          &kp UP        &kp DOWN      &kp LBKT     &kp RBKT        &kp PG_DN
+&magic MAGIC 0  &kp HOME     &kp END      &kp LEFT      &kp RIGHT             &kp LEFT_SHIFT  &kp BACKSPACE     &kp LALT   &num LOWER RALT    &kp SPACE  &kp RIGHT_SHIFT          &kp UP        &kp DOWN      &kp LBKT     &kp RBKT        &kp PG_DN
             >;
         };
 
@@ -206,12 +269,12 @@
             // Reach via MAGIC layer: &to 1 turns HRM off, &to 0 turns it back on.
 
             bindings = <
-&kp F1          &kp F2    &kp LG(C)  &kp LG(V)  &kp F5                                                                                                           &kp F12  &kp F7     &kp F8    &kp F9    &kp F10
+&kp LG(LS(S))   &kp F2    &copy_mac  &paste_mac &kp LG(R)                                                                                                        &kp F12  &kp F7     &kp F8    &kp F9    &kp F10
 &kp EQUAL       &kp N1    &kp N2     &kp N3     &kp N4     &kp N5                                                                                        &kp N6  &kp N7   &kp N8     &kp N9    &kp N0    &kp MINUS
 &kp TAB         &kp Q     &kp W      &kp E      &kp R      &kp T                                                                                         &kp Y   &kp U    &kp I      &kp O     &kp P     &kp BSLH
 &kp ESC         &kp A     &kp S      &kp D      &kp F      &kp G                                                                                         &kp H   &kp J    &kp K      &kp L     &kp SEMI  &kp SQT
 &kp GRAVE       &kp Z     &kp X      &kp C      &kp V      &kp B   &kp LEFT_CONTROL  &ls SHORTCUT DEL  &layer_td  &kp LGUI  &kp ENTER  &kp LEFT_CONTROL  &kp N   &kp M    &kp COMMA  &kp DOT   &kp FSLH  &kp PG_UP
-&magic MAGIC 0  &kp HOME  &kp END    &kp LEFT   &kp RIGHT          &kp LEFT_SHIFT    &kp BACKSPACE     &kp LALT   &kp RALT  &kp SPACE  &kp RIGHT_SHIFT           &kp UP   &kp DOWN   &kp LBKT  &kp RBKT  &kp PG_DN
+&magic MAGIC 0  &kp HOME  &kp END    &kp LEFT   &kp RIGHT          &kp LEFT_SHIFT    &kp BACKSPACE     &kp LALT   &num LOWER RALT  &kp SPACE  &kp RIGHT_SHIFT     &kp UP   &kp DOWN   &kp LBKT  &kp RBKT  &kp PG_DN
             >;
         };
 
@@ -224,8 +287,8 @@
 &trans        &kp F1        &kp F2      &kp F3      &kp F4     &kp HOME                                                           &kp LPAR   &kp KP_NUM  &kp KP_EQUAL  &kp KP_DIVIDE  &kp KP_MULTIPLY  &kp PSCRN
 &trans        &none         &none       &kp UP      &none      &kp END                                                            &kp RPAR   &kp KP_N7   &kp KP_N8     &kp KP_N9      &kp KP_MINUS     &kp SLCK
 &trans        &none         &kp LEFT    &kp DOWN    &kp RIGHT  &kp PG_UP                                                          &kp PRCNT  &kp KP_N4   &kp KP_N5     &kp KP_N6      &kp KP_PLUS      &none
-&trans        &kp K_CMENU   &none       &kp F11     &kp F12    &kp PG_DN  &trans  &trans  &to DEFAULT  &kp BSPC  &kp RET  &trans  &kp COMMA  &kp KP_N1   &kp KP_N2     &kp KP_N3      &kp KP_ENTER     &trans
-&trans        &kp CAPS      &kp INS     &kp F11     &kp F12               &trans  &trans  &trans       &trans    &trans   &trans             &kp KP_N0   &kp KP_N0     &kp KP_DOT     &kp KP_ENTER     &trans
+&trans        &kp K_CMENU   &none       &kp F11     &kp F12    &kp PG_DN  &trans  &trans  &to DEFAULT  &kp BSPC  &kp RET  &trans  &kp COMMA  &kp KP_N1   &kp KP_N2     &kp KP_N3      &kp BSPC         &trans
+&trans        &kp CAPS      &kp INS     &kp LC(LEFT)  &kp LC(RIGHT)      &trans  &trans  &trans       &trans    &trans   &trans             &kp KP_N0   &kp KP_N0     &kp KP_DOT     &kp KP_ENTER     &trans
             >;
         };
 
@@ -235,11 +298,12 @@
             //   A = autofill (Ctrl+Shift+L)   S = screenshot (Cmd+Shift+S, bind Snagit here)
             //   D = duplicate tab (Alt+S)     F = Spotlight (Cmd+Space)   G = Claude (Alt+Space)
             //   Z = lock (Ctrl+Cmd+Q)  X = clipboard history (Cmd+Shift+V)  C = copy  V = paste
+            //   W = swap same-app windows (Cmd+`)   E = Mission Control / Expose (Ctrl+Up)
 
             bindings = <
 &trans  &trans         &trans         &trans     &trans                                                                                &trans  &trans  &trans  &trans  &trans
 &trans  &trans         &trans         &trans     &trans         &trans                                                         &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans         &trans         &trans     &trans         &trans                                                         &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans         &kp LG(GRAVE)  &kp LC(UP) &trans         &trans                                                         &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &kp LG(LS(L))  &kp LG(LS(S))  &kp LA(S)  &kp LG(SPACE)  &kp LA(SPACE)                                                  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &kp LC(LG(Q))  &kp LG(LS(V))  &kp LG(C)  &kp LG(V)      &trans         &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans         &trans         &trans     &trans                        &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
@@ -249,16 +313,17 @@
         shortcut_pc_layer {
             // PC variants (auto-selected when PC mode is on). Keys that are identical
             // to Mac (autofill, duplicate tab, Claude) stay transparent -> fall to SHORTCUT.
-            //   S = screenshot (Win+Shift+S)  F = Windows search (Win+S)
+            //   A = autofill (Ctrl+Shift+L)   S = screenshot (Win+Shift+S)
+            //   F = command palette (Alt+Space)   G = Claude (Ctrl+Alt+Space)
             //   Z = lock (Win+L)  X = clipboard history (Win+V)  C = copy (Ctrl+C)  V = paste (Ctrl+V)
 
             bindings = <
-&trans  &trans     &trans         &trans     &trans                                                                     &trans  &trans  &trans  &trans  &trans
-&trans  &trans     &trans         &trans     &trans     &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans     &trans         &trans     &trans     &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans     &kp LG(LS(S))  &trans     &kp LG(S)  &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &kp LG(L)  &kp LG(V)      &kp LC(C)  &kp LC(V)  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans     &trans         &trans     &trans             &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
+&trans  &trans         &trans         &trans     &trans                                                                            &trans  &trans  &trans  &trans  &trans
+&trans  &trans         &trans         &trans     &trans         &trans                                                     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans         &trans         &trans     &trans         &trans                                                     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LC(LS(L))  &kp LG(LS(S))  &trans     &kp LA(SPACE)  &kp LC(LA(SPACE))                                          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &kp LG(L)      &kp LG(V)      &kp LC(C)  &kp LC(V)      &trans  &trans  &trans  &trans  &trans  &trans  &trans     &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans         &trans         &trans     &trans                 &trans  &trans  &trans  &trans  &trans  &trans             &trans  &trans  &trans  &trans  &trans
             >;
         };
 
@@ -287,17 +352,42 @@
         };
 
         pc_layer {
-            // OS flag layer. Toggled on/off with &tog 7 (on MAGIC). While ON, the base
-            // copy/paste keys emit Ctrl (Windows) instead of Cmd. Everything else is
-            // transparent. Combined with the SHORTCUT layer it activates SHORTCUT_PC.
+            // OS flag layer. Toggled on/off with &tog 7 (on MAGIC). While ON:
+            //   - base copy/paste keys emit Ctrl (Windows) with Shift-masking
+            //   - F5 stays F5 (Chrome reload on Windows; base sends Cmd+R for Mac)
+            //   - thumb Cmd(GUI) <-> Ctrl are swapped so Ctrl is the primary mod
+            // Everything else is transparent. Combined with SHORTCUT it activates
+            // SHORTCUT_PC; combined with LOWER it activates LOWER_PC.
 
             bindings = <
-&trans  &trans  &kp LC(C)  &kp LC(V)  &trans                                                                  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &copy_pc   &paste_pc  &kp F5                                                                  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans     &trans     &trans  &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans     &trans     &trans  &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans     &trans     &trans  &trans                                                  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans  &trans     &trans     &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans     &trans     &trans  &trans  &kp LCTRL  &trans  &trans  &kp LGUI  &trans  &kp RCTRL  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans  &trans     &trans     &trans          &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
+            >;
+        };
+
+        lower_pc_layer {
+            // PC variants of LOWER (auto when PC + LOWER are both active).
+            //   Top row F3/F4 -> previous/next track. On Windows the PC layer's
+            //     Ctrl+C / Ctrl+V overlay sits above LOWER and would otherwise
+            //     shadow these media keys; LOWER_PC (layer 8) sits above PC and
+            //     restores the track-skip behaviour.
+            //   Layer + Left/Right arrow -> switch virtual desktop (Ctrl+Win+Arrow).
+            //   Play/pause (F5) and the right-thumb Backspace are restored here
+            //     because the PC layer's F5 and Ctrl<->Win thumb swap sit above
+            //     LOWER and would otherwise shadow them on Windows.
+            // Everything else is transparent -> falls through to LOWER.
+
+            bindings = <
+&trans  &trans  &kp C_PREV  &kp C_NEXT  &kp C_PP                                                                        &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans      &trans      &trans  &trans                                                          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans      &trans      &trans  &trans                                                          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans      &trans      &trans  &trans                                                          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans      &trans      &trans  &trans  &trans  &trans  &trans  &kp BSPC  &trans  &trans          &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans      &kp LC(LG(LEFT))  &kp LC(LG(RIGHT))     &trans  &trans  &trans  &trans  &trans  &trans          &trans  &trans  &trans  &trans  &trans
             >;
         };
     };
