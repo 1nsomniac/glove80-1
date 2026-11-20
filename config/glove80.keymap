@@ -38,14 +38,15 @@
 // ---------------------------------------------------------------------------
 
 #define DEFAULT      0
-#define BASE_PLAIN   1
-#define LOWER        2
-#define SHORTCUT     3
-#define SHORTCUT_MAC 4
-#define MAGIC        5
-#define FACTORY_TEST 6
-#define MAC          7
-#define LOWER_MAC    8
+#define MAC_HRM      1
+#define BASE_PLAIN   2
+#define LOWER        3
+#define SHORTCUT     4
+#define SHORTCUT_MAC 5
+#define MAGIC        6
+#define FACTORY_TEST 7
+#define MAC          8
+#define LOWER_MAC    9
 
 // Positions of one hand + both thumb clusters, used to make the home row mods
 // "positional" (a mod only triggers when combined with a key on the OTHER
@@ -139,22 +140,22 @@
             bindings = <&kp>, <&kp>;
         };
 
-        // Ctrl home row mods (A and ;) -- deliberately NOT positional.
+        // "Main shortcut modifier" home row mods (D and K) -- deliberately NOT
+        // positional. They hold Ctrl on PC and Cmd on Mac (MAC_HRM layer swaps
+        // them), matching how the thumb Ctrl/Cmd keys swap.
         //
-        // Nearly every Windows shortcut is Ctrl + a key on the SAME hand as the
-        // Ctrl key (Ctrl+C/V/X/Z/S/W/T/Q all live under the left hand). The
-        // positional variants above cancel the hold in exactly that case, which
-        // is why "holding A and pressing C" just typed "ac". Dropping
-        // hold-trigger-key-positions here lets same-hand Ctrl chords work.
+        // Most shortcuts are that modifier + a key on the SAME hand (C/V/X/Z/S/W/T
+        // all live under the left hand). The positional variants above cancel the
+        // hold in exactly that case, so dropping hold-trigger-key-positions here
+        // lets one-handed Ctrl+C / Cmd+C work.
         //
-        // require-prior-idle-ms is what keeps this safe: mid-word, a hold is
-        // refused outright, so rolls like "as"/"ad" still type letters. Only a
-        // deliberate press after a 150ms pause can become Ctrl. If you ever do
-        // get a stray Ctrl while typing, raise require-prior-idle-ms toward 200.
+        // require-prior-idle-ms keeps this safe: mid-word a hold is refused
+        // outright, so rolls like "de"/"ed" still type letters. If you ever get a
+        // stray Ctrl/Cmd while typing, raise require-prior-idle-ms toward 200.
 
-        hml_ctl: home_row_mod_left_ctrl {
+        hml_main: home_row_mod_left_main {
             compatible = "zmk,behavior-hold-tap";
-            label = "HRM_LEFT_CTRL";
+            label = "HRM_LEFT_MAIN";
             #binding-cells = <2>;
             flavor = "balanced";
             tapping-term-ms = <280>;
@@ -163,9 +164,9 @@
             bindings = <&kp>, <&kp>;
         };
 
-        hmr_ctl: home_row_mod_right_ctrl {
+        hmr_main: home_row_mod_right_main {
             compatible = "zmk,behavior-hold-tap";
-            label = "HRM_RIGHT_CTRL";
+            label = "HRM_RIGHT_MAIN";
             #binding-cells = <2>;
             flavor = "balanced";
             tapping-term-ms = <280>;
@@ -260,6 +261,12 @@
     conditional_layers {
         compatible = "zmk,conditional-layers";
 
+        // MAC mode swaps the home-row holds back to the Mac layout.
+        mac_hrm {
+            if-layers = <MAC>;
+            then-layer = <MAC_HRM>;
+        };
+
         shortcut_mac {
             if-layers = <MAC SHORTCUT>;
             then-layer = <SHORTCUT_MAC>;
@@ -303,10 +310,11 @@
             // | SNIP  |  F2 | COPY | PASTE|  F5  |                                                               |  F12  |  F7   |  F8  |   F9  |  F10 |
             // |  =    |  1  |  2  |  3   |  4   |  5   |                                                 |  6   |   7   |   8   |  9   |   0   |   -  |
             // |  TAB  |  Q  |  W  |  E   |  R   |  T   |                                                 |  Y   |   U   |   I   |  O   |   P   |   \  |
-            // |  ESC  | A/C | S/A | D/G  | F/S  |  G   |                                                 |  H   |  J/S  |  K/G  | L/A  |  ;/C  |   '  |
+            // |  ESC  | A/W | S/A | D/C  | F/S  |  G   |                                                 |  H   |  J/S  |  K/C  | L/A  |  ;/W  |   '  |
             // |   `   |  Z  |  X  |  C   |  V   |  B   | LCTRL | DEL/SC| LOWER | | LGUI  | RET   | RCTRL |  N   |   M   |   ,   |  .   |   /   | PGUP |
             // | MAGIC | HOME| END | LEFT | RIGHT|      | LSHFT | BSPC  | LALT  | | ALT/L | SPACE | RSHFT |      |  UP   | DOWN  |  [   |   ]   | PGDN |
-            //  ( home row mods: A=Ctrl S=Alt D=Win F=Shift  /  J=Shift K=Win L=Alt ;=Ctrl )
+            //  ( home row mods: A=Win S=Alt D=Ctrl F=Shift  /  J=Shift K=Ctrl L=Alt ;=Win )
+            //  ( same positions as the Mac: Mac Cmd -> PC Ctrl, Mac Ctrl -> PC Win, like the thumbs )
             //  ( SNIP = Win+Shift+S, same keycode as Cmd+Shift+S on Mac )
             //  ( COPY=Ctrl+C  PASTE=Ctrl+V  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
             //  ( Ctrl also lives on the LEFT THUMB so Ctrl+A / Ctrl+C never need a same-hand stretch )
@@ -315,9 +323,24 @@
 &kp LG(LS(S))   &kp F2                   &copy_pc     &paste_pc        &kp F5                                                                                                                      &kp F12       &kp F7            &kp F8       &kp F9                       &kp F10
 &kp EQUAL       &kp N1                   &kp N2       &kp N3           &kp N4        &kp N5                                                                                                &kp N6  &kp N7        &kp N8            &kp N9       &kp N0                       &kp MINUS
 &kp TAB         &kp Q                    &kp W        &kp E            &kp R         &kp T                                                                                                 &kp Y   &kp U         &kp I             &kp O        &kp P                        &kp BSLH
-&kp ESC         &hml_ctl LEFT_CONTROL A  &hml LALT S  &hml LEFT_GUI D  &hml LSHFT F  &kp G                                                                                                 &kp H   &hmr RSHFT J  &hmr RIGHT_GUI K  &hmr RALT L  &hmr_ctl RIGHT_CONTROL SEMI  &kp SQT
+&kp ESC         &hml LEFT_GUI A           &hml LALT S  &hml_main LEFT_CONTROL D  &hml LSHFT F  &kp G                                                                                                 &kp H   &hmr RSHFT J  &hmr_main RIGHT_CONTROL K  &hmr RALT L  &hmr RIGHT_GUI SEMI  &kp SQT
 &kp GRAVE       &kp Z                    &kp X        &kp C            &kp V         &kp B   &kp LEFT_CONTROL  &ls SHORTCUT DEL  &layer_td  &kp LEFT_GUI         &kp ENTER  &kp RIGHT_CONTROL      &kp N   &kp M         &kp COMMA         &kp DOT      &kp FSLH                     &kp PG_UP
 &magic MAGIC 0  &kp HOME                 &kp END      &kp LEFT         &kp RIGHT             &kp LEFT_SHIFT    &kp BACKSPACE     &kp LALT   &num LOWER LEFT_ALT  &kp SPACE  &kp RIGHT_SHIFT        &kp UP        &kp DOWN          &kp LBKT     &kp RBKT                     &kp PG_DN
+            >;
+        };
+
+        mac_hrm_layer {
+            // Active automatically while MAC is on (conditional layer).
+            // Mac home-row holds: A=Ctrl D=Cmd / K=Cmd ;=Ctrl (S/L Alt, F/J Shift unchanged).
+            // Sits BELOW BASE_PLAIN, LOWER and SHORTCUT so it never overrides them.
+
+            bindings = <
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &hml LEFT_CONTROL A  &trans  &hml_main LEFT_GUI D  &trans  &trans  &trans  &trans  &hmr_main RIGHT_GUI K  &trans  &hmr RIGHT_CONTROL SEMI  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans
             >;
         };
 
