@@ -175,9 +175,9 @@
             bindings = <&kp>, <&kp>;
         };
 
-        // Copy / paste with Shift masked. Tap = copy / paste. Holding Shift on
-        // the paste key gives a plain-text ("paste and match style") paste;
-        // holding Shift on the copy key stays a plain copy (Shift is discarded
+        // Copy / paste with Shift masked. Tap = copy / paste. Shift + PASTE
+        // opens clipboard history: Win+V on PC, Cmd+Shift+V on Mac.
+        // Holding Shift on the copy key stays a plain copy (Shift is discarded
         // by mod-morph so it never leaks into Ctrl/Cmd+Shift+C).
 
         copy_pc: copy_pc_morph {
@@ -193,7 +193,7 @@
             compatible = "zmk,behavior-mod-morph";
             label = "PASTE_PC";
             #binding-cells = <0>;
-            bindings = <&kp LC(V)>, <&kp LC(LS(V))>;
+            bindings = <&kp LC(V)>, <&kp LG(V)>;
 
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
@@ -316,7 +316,7 @@
             //  ( home row mods: A=Win S=Alt D=Ctrl F=Shift  /  J=Shift K=Ctrl L=Alt ;=Win )
             //  ( same positions as the Mac: Mac Cmd -> PC Ctrl, Mac Ctrl -> PC Win, like the thumbs )
             //  ( SNIP = Win+Shift+S, same keycode as Cmd+Shift+S on Mac )
-            //  ( COPY=Ctrl+C  PASTE=Ctrl+V  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
+            //  ( COPY=Ctrl+C  PASTE=Ctrl+V (Shift+PASTE=Win+V history)  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
             //  ( Ctrl also lives on the LEFT THUMB so Ctrl+A / Ctrl+C never need a same-hand stretch )
 
             bindings = <
