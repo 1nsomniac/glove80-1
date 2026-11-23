@@ -177,9 +177,8 @@
 
         // Copy / paste with Shift masked. Tap = copy / paste. Shift + PASTE
         // opens clipboard history: Win+V on PC, Cmd+Shift+V on Mac.
-        // Ctrl-thumb + PASTE pastes as plain text. "Ctrl-thumb" is the
-        // innermost top key on the RIGHT thumb: Ctrl on Mac, Win on PC (same
-        // swap as everywhere else), so the PC variant triggers on Win.
+        // Main modifier + PASTE pastes as plain text: Ctrl on PC, Cmd on Mac
+        // (left thumb key next to the letters, or the D/K home-row hold).
         // Holding Shift on the copy key stays a plain copy (Shift is discarded
         // by mod-morph so it never leaks into Ctrl/Cmd+Shift+C).
 
@@ -201,17 +200,14 @@
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
 
-        // Win held -> plain-text paste. Win is NOT masked here (keep-mods):
-        // masking it would look like a lone Win tap and open the Start menu.
-        // The macro instead presses Ctrl first, then drops Win, then Shift+V.
+        // Ctrl held (masked) -> Ctrl+Shift+V, plain-text paste on Windows.
         paste_pc_plain: paste_pc_plain_morph {
             compatible = "zmk,behavior-mod-morph";
             label = "PASTE_PC_PLAIN";
             #binding-cells = <0>;
-            bindings = <&kp LC(V)>, <&plain_paste_win>;
+            bindings = <&kp LC(V)>, <&kp LC(LS(V))>;
 
-            mods = <(MOD_LGUI|MOD_RGUI)>;
-            keep-mods = <(MOD_LGUI|MOD_RGUI)>;
+            mods = <(MOD_LCTL|MOD_RCTL)>;
         };
 
         copy_mac: copy_mac_morph {
@@ -232,34 +228,18 @@
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
 
-        // Ctrl held (masked) -> Option+Shift+Cmd+V, macOS "Paste and Match Style".
+        // Cmd held (masked) -> Option+Shift+Cmd+V, macOS "Paste and Match Style".
         paste_mac_plain: paste_mac_plain_morph {
             compatible = "zmk,behavior-mod-morph";
             label = "PASTE_MAC_PLAIN";
             #binding-cells = <0>;
             bindings = <&kp LG(V)>, <&kp LG(LA(LS(V)))>;
 
-            mods = <(MOD_LCTL|MOD_RCTL)>;
+            mods = <(MOD_LGUI|MOD_RGUI)>;
         };
     };
 
     macros {
-        // Ctrl+Shift+V while the Win key is physically held, without opening
-        // the Start menu: Ctrl goes down before Win comes up.
-        plain_paste_win: plain_paste_win {
-            label = "PLAIN_PASTE_WIN";
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            wait-ms = <10>;
-            tap-ms = <10>;
-            bindings
-                = <&macro_press &kp LCTRL>
-                , <&macro_release &kp LGUI &kp RGUI>
-                , <&macro_tap &kp LS(V)>
-                , <&macro_release &kp LCTRL>
-                ;
-        };
-
         rgb_ug_status_macro: rgb_ug_status_macro_0 {
             label = "RGB_UG_STATUS";
             compatible = "zmk,behavior-macro";
@@ -358,7 +338,7 @@
             //  ( home row mods: A=Win S=Alt D=Ctrl F=Shift  /  J=Shift K=Ctrl L=Alt ;=Win )
             //  ( same positions as the Mac: Mac Cmd -> PC Ctrl, Mac Ctrl -> PC Win, like the thumbs )
             //  ( SNIP = Win+Shift+S, same keycode as Cmd+Shift+S on Mac )
-            //  ( COPY=Ctrl+C  PASTE=Ctrl+V (Shift+PASTE=Win+V history, Win-thumb+PASTE=plain text)  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
+            //  ( COPY=Ctrl+C  PASTE=Ctrl+V (Shift+PASTE=Win+V history, Ctrl+PASTE=plain text)  /  DEL/SC = tap Delete, hold left-hand SHORTCUT layer )
             //  ( Ctrl also lives on the LEFT THUMB so Ctrl+A / Ctrl+C never need a same-hand stretch )
 
             bindings = <
